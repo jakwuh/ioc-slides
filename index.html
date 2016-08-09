@@ -3,15 +3,12 @@
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-		<title>reveal.js</title>
-
+		<title>IoC | James Akwuh</title>
 		<link rel="stylesheet" href="css/reveal.css">
-		<link rel="stylesheet" href="css/theme/black.css">
-
+		<link rel="stylesheet" href="css/theme/white.css">
+		<link href='https://fonts.googleapis.com/css?family=Roboto:400,400italic,700,700italic&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
 		<!-- Theme used for syntax highlighting of code -->
 		<link rel="stylesheet" href="lib/css/zenburn.css">
-
 		<!-- Printing and PDF exports -->
 		<script>
 			var link = document.createElement( 'link' );
@@ -20,12 +17,629 @@
 			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
 			document.getElementsByTagName( 'head' )[0].appendChild( link );
 		</script>
+		<style>
+			* {font-family: 'Roboto', sans-serif !important;}
+		</style>
 	</head>
 	<body>
 		<div class="reveal">
 			<div class="slides">
-				<section>Slide 1</section>
-				<section>Slide 2</section>
+
+				<section data-center="false">
+					<p style="font-size: 80px;">Inversion of Control</p>
+					<p>James Akwuh, Yandex</p>
+					<aside class="notes">
+						Дисклеймер<br>
+						Боль
+					</aside>
+				</section>
+
+				<section>
+					IoC - обращение зависимостей
+					<br>
+					<br>
+					A <span style="position: relative">
+						<span class="fragment fade-out" style="position: absolute;">→</span>
+						<span class="fragment fade-in" style="position: absolute;">
+							<span class="fragment fade-out">→</span>
+						</span>
+						<span class="fragment fade-in">←</span>
+					</span> B
+					<aside class="notes">
+						Кто может сказать чем DI отличается от IoC?
+						обсуждение... ( названием :) )
+						давайте посмотрим на пример, где есть IoC, но нет DI
+					</aside>
+				</section>
+
+				<section>
+					Жизнь без IoC
+					<pre><code class="hljs" data-trim contenteditable>
+login();
+
+function login() {
+    let login = window.prompt(‘Enter login’, ‘’);
+    let password = window.prompt(‘Enter password’, ‘’);
+    // this.user.login(login, password);
+}
+					</code></pre>
+					<aside class="notes">
+						кстати это будет работать? (хойстинг)
+					</aside>
+				</section>
+
+				<section>
+					Жизнь с IoC
+					<pre><code class="hljs" data-trim contenteditable>
+document
+    .querySelector('button#login')
+    .addEventListener('click', login);
+
+function login() {
+    const form = new Form(‘#form-id’);
+    const login = form.get(‘login’);
+    const password = form.get(‘password’);
+    // this.user.login(login, password);
+}
+					</code></pre>
+				</section>
+				<section>
+					Программа <span style="position: relative">
+						<span class="fragment fade-out" style="position: absolute;">→</span>
+						<span class="fragment fade-in">←</span>
+					</span> GUI
+					<aside class="notes">
+						В чем разница?
+						В первом случае программа вызывает GUI. Во втором случае GUI вызывает программу.
+					</aside>
+				</section>
+
+				<section>
+					И появился WinAPI
+					<pre><code class="hljs" data-trim contenteditable>
+while (GetMessage(&msg, NULL, 0, 0)) {
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+}
+					</code></pre>
+					<aside class="notes">
+						больше я не буду вас пугать WinAPI и ему подобными библиотеками
+						если потребуется - Кто теперь может сказать чем DI отличается от IoC?
+					</aside>
+				</section>
+
+				<section>
+					<p><b>Inversion of Control</b></p>
+					<ul>
+						<li>Service Locator</li>
+						<li>Dependency Injection (+ DI Container)</li>
+					</ul>
+					<aside class="notes">
+						DI - это IoC для зависимостей между объектами.
+						Cхема выглядит следующим образом:
+						так исторически сложилось что под DI чаще всего подразумевают использование обоих подходов - и Service Locator и Dependency Injection
+					</aside>
+				</section>
+
+				<section>
+					<ul>
+						<li>Упрощает код</li>
+						<li>Повышает модульность</li>
+						<li>Жизненным циклом управляют "свыше"</li>
+						<li>Удобно тестировать</li>
+					</ul>
+				</section>
+
+				<section>
+					<b>Service Locator</b>
+					<aside class="notes">
+						это контейнер который хранит в себе информацию о том, как строить объекты
+					</aside>
+				</section>
+
+				<section>
+					<pre><code class="hljs" data-trim contenteditable>
+import Database from 'interfaces';
+
+class UserRepository {
+
+    constructor(locator) {
+        this.database = locator.get(Database);
+        // ...
+    }
+
+}
+					</code></pre>
+				</section>
+
+				<section>
+					<p><b>+</b></p>
+					<ul>
+						<li>Простая реализация</li>
+						<li>Знает контекст вызова</li>
+						<li>Бесплатная отложенная загрузка</li>
+					</ul>
+					<aside class="notes">
+						конечно же все плюсы IoC и также
+					</aside>
+				</section>
+
+				<section>
+					<p><b>-</b></p>
+					<ul>
+						<li>Нарушает закон Деметры</li>
+						<li>Ухудшает модульность компонента</li>
+						<li>Не может быть статически проанализирован</li>
+					</ul>
+				</section>
+
+				<section>
+					<pre><code class="hljs" data-trim contenteditable>
+class ServiceLocator {
+    factories = new WeakMap();
+
+    // Usage:
+    // locator.set(Database, MongoDB.factory)
+    set(token, factory) {
+        this.factories.set(token, factory);
+    }
+
+    // Usage: locator.get(Database)
+    @autobind
+    get(token) {
+        return this.factories.get(token)(this);
+    }
+}
+					</code></pre>
+					<aside class="notes">
+						 + Простой как 10 строчек кода
+						<br><br>
+						 это очень похоже на обычный js объект с переопределенными геттером и сеттером.
+						 сеттер - добавляет информацию о том как строить объект
+						 геттер - отдает объект, но при этом конструирует его.
+						 это правда и hashmap можно использовать в качестве ServiceLocator но при этом вводится ограничение
+						 Может кто-нибудь сможет сказать какое?
+						 Увидим дальше (в разделе про токены)
+					</aside>
+				</section>
+
+				<section>
+					<pre><code class="hljs" data-trim contenteditable>
+import Database from 'interfaces';
+
+class UserRepository {
+
+    constructor(locator) {
+        this.locator = locator;
+    }
+
+    findAll() {
+        if (!this.database) {
+            this.database = this.locator.get(Database);
+        }
+        return this.collect(
+            this.database.execute('select * from `user`'));
+    }
+
+}
+					</code></pre>
+					<aside class="notes">
+						 + Бесплатная отложенная загрузка - сначала показать старый слайд и сказать что там не так а потом уже этот
+						<br><br>
+						 - Нарушает закон Деметры
+						как вы понимаете его? репозиторию нужна база данных поэтому не совсем понятно почему он должен
+						работать с каким-то локатором.
+						<br><br>
+						 - Ухудшает модульность компонента
+						если этот компонент захочет использовать кто-то другой, то ему придется вносить в свою архитектуру
+						service locator, а если он уже есть то писать адаптер для него
+						<br><br>
+						 - Не может быть статически проанализирован
+						если говорить честно то можно это проанализировать статически, но тогда на код нужно будет
+						накладывать большие огрничения. подомно тем, как это делает webpack. если вы в require
+						передадите переменную, значение которой не очевидно то при компиляции webpack будет писать вам
+						что он не может это статически проанализировать поэтому в бандл может что-нибудь не попасть.
+						почему это плохо - увидим дальше
+
+					</aside>
+				</section>
+
+				<section>
+					Contextual binding
+					<pre><code class="hljs" data-trim contenteditable>
+locator.set('database', MySqlDB.factory);
+locator.context('logger').set('database', MongoDB.factory);
+
+const app = locator.get('app');
+					</code></pre>
+					<aside class="notes">
+						+ Располагает информацией о контексте вызова
+						<br>
+						для Service Locator это означает возможность использовать Contextual binding
+						<br><br>
+						это очень мощный механизм. Без привязки к контексту для решения подобной ситуации вам пришлось бы создавать два ключа: defaultDatabase и logsDatabase
+						и ваши модули зависели бы от них. но если завтра вдруг вы решите объединить базу логов с основной базой - вам придется переименовывать зависимости во всем
+						приложении. C другой стороны, если вы использовали contextual binding вы просто удаляете строчку с контекстной привязкой - и все работает.
+						пример немного сферический и в вакууме но он хорошо передает суть контекстной привзяки
+					</aside>
+				</section>
+
+				<section>
+					Типы ключей
+					<pre><code class="hljs" data-trim contenteditable>
+import Database from 'interfaces';
+import DatabaseSymbol from 'symbols';
+
+locator.set(Database, MongoDB.factory);
+locator.set('database', MongoDB.factory);
+locator.set(DatabaseSymbol, MongoDB.factory);
+					</code></pre>
+					<aside class="notes">
+						если хотите веселья можете использовать числа как токены: 1 - User, 2 - Database и т.д. :)))
+						помните мы хотели использовать обычный js object с переопределенными сеттером и геттером в качестве ServiceLocator
+						теперь скажите в чем ограничение?
+						ответ: не сможем использовать объекты обоих типов в качестве ключей
+					</aside>
+				</section>
+
+				<section>
+					Dependency Injection
+					<pre><code class="hljs" data-trim contenteditable>
+class UserRepository {
+
+    constructor(database) {
+        this.database = database;
+        // ...
+    }
+
+}
+					</code></pre>
+					<pre class="fragment"><code class="hljs" data-trim contenteditable>
+new Application(new EmailService(),
+    new UserRepository(MongoDatabase.factory(
+        new CredentialsStore.fromFS('keys.txt')))).start();
+					</code></pre>
+					<aside class="notes">
+						когда Вам продают DI вам говорят - смотрите - вот это и есть DI - это поймет любой ребенок
+						вся правда в том что сам по себе паттерн DI вряд ли принесет вам много счастья.
+						То что вам нужно - это DI вместе с ServiceLocator и возможностью использования конфигурации (xml, json, yml, annotations, whatever)
+						конечно, код модуля UserRepository стал проще, его легко тестировать
+						но вся боль создания зависимостей по прежнему осталась.
+						давайте посмотрим на DI вместе с DI контейнером
+					</aside>
+				</section>
+
+				<section>
+					Dependency Injection + Container
+					<pre><code class="hljs" data-trim contenteditable>
+class UserRepository {
+
+    constructor(database) {
+        this.database = database;
+        // ...
+    }
+
+}
+					</code></pre>
+					<pre><code class="hljs" data-trim contenteditable>
+// ...
+container.get('app').start();
+// ...
+					</code></pre>
+				</section>
+
+				<section>
+					<p><b>+</b></p>
+					<ul>
+						<li>Простая концепция</li>
+						<li>Самодокументируемость</li>
+						<li>Знает контекст вызова</li>
+						<li>Может быть проанализирован статически</li>
+					</ul>
+					<aside class="notes">
+						все плюсы IoC и также:
+						<br>
+						Два последних плюса вместе позволяют делать очень классные вещи, как мы увидим позже
+					</aside>
+				</section>
+
+				<section>
+					<p><b>-</b></p>
+					<ul>
+						<li>Усложняет компиляцию / запуск приложения</li>
+					</ul>
+				</section>
+
+				<section>
+					<p>Статический анализ и "рефлексия"</p>
+					<aside class="notes">
+						возможность языка анализировать и изменять свой собственный код в рантайме
+						<br>
+						почему я пишу в кавычках потому что в Reflection в js был стандартизирован только в es6 и он на порядок отстает от рефлексии в других языках
+						тем не менее из-за динамической природы js для большинства случаев есть почти рабочие обходные способы.
+						итак, рассмотрим следующий код
+					</aside>
+					<br>
+				</section>
+				<section>
+					<pre><code class="hljs" data-trim contenteditable>
+class Application {
+
+    // ...
+
+    static factory(database) {
+        return new this(database);
+    }
+
+}
+
+di.set('app', Application.factory);
+const app = di.get('app');
+					</code></pre>
+					<aside class="notes">
+						 на что стоит обратить внимание?
+						 в момент когда у контейнера запрашивают зависимость, он располагает метаинформацией о конструкторе этой зависимости
+					</aside>
+				</section>
+
+				<section>
+					<p>Пример (используя рефлексию)</p>
+					<small><i>где-то в другой Вселенной</i></small>
+					<pre><code class="hljs" data-trim contenteditable>
+class DIContainer {
+    // ...
+
+    @autobind
+    get(token) {
+        const {factory} = this.factories.get(token);
+        const dependenciesNames = Reflect.getParameterNames(factory);
+        return factory(...dependenciesNames.map(this.get));
+    }
+}
+					</code></pre>
+					<aside class="notes">
+						// наподобие Java method.getParameterTypes
+					</aside>
+				</section>
+
+				<section>
+					Пример (из жизни)
+					<pre><code class="hljs" data-trim contenteditable>
+class DIContainer {
+    // ...
+
+    @autobind
+    get(token) {
+        const {factory} = this.factories.get(token);
+        const factoryAsString = factory.toString();
+        const dependenciesNames =
+            this.parseFactoryParameters(factoryAsString);
+        return factory(...dependenciesNames.map(this.get));
+    }
+}
+					</code></pre>
+				</section>
+
+				<section>
+					<pre><code class="hljs" data-trim contenteditable>
+Application.factory.toString();
+// "factory(database) { return new this(database);}"
+					</code></pre>
+				</section>
+
+				<section>
+					<p>Статический анализ</p>
+					<small class="fragment">бонус</small>
+					<aside class="notes">
+						статический анализ позволит делать классные вещи
+					</aside>
+				</section>
+
+				<section>
+					<a href="http://webpack.github.io/analyse/">webpack.github.io/analyse</a>
+					<img class="fragment" style="border: none;" src="./images/hot.png">
+					<aside class="notes">
+						комок счастья
+					</aside>
+				</section>
+
+				<section>
+					<a href="http://webpack.github.io/analyse/">webpack.github.io/analyse</a>
+					<img style="border: none;" src="./images/pdb.png">
+					<aside class="notes">
+						покебол
+						<br>
+						locales в моменте
+					</aside>
+				</section>
+
+				<section>
+					Конфигурация
+					<p class="fragment">должна быть доступна к моменту запуска приложения</p>
+					<aside class="notes">
+						мы увидели что за счет декларативности dependency injection и "рефлексии" в js
+						мы можем в рантайме понять, какие зависимости ожидает получить конструируемый объект
+						но нам по прежнему надо сообщить контейнеру зависимостей информацию о том, как построить требуемые классы, т.е. сконфигурировать в нем ServiceLocator
+						самое важное - сделать это надо либо во время компиляции либо перед запуском приложения
+						давайте рассмотрим как это можно сделать
+					</aside>
+				</section>
+
+				<section>
+					<p>Способ 1</p>
+					<p>Конфигурация в JS</p>
+					<pre><code class="hljs" data-trim contenteditable>
+container.put({
+    id: Database,
+    factory: MongoDB.factory
+});
+					</code></pre>
+					<aside class="notes">
+						Почему JS - потому что мы можем захотеть токены использовать
+				</section>
+
+				<section>
+					<p>Способ 2</p>
+					<p>Файл конфигурации</p>
+					<small>json, xml, yml, ...</small>
+					<pre><code class="hljs" data-trim contenteditable>
+{
+    "database": {
+        "class": "MongoDB",
+        "factory": "factory",
+        "dependencies": ["credentialsStore"]
+    },
+    "credentialsStore": {
+        "class": "CredentialsStore",
+        "factory": "factory",
+        "dependencies": [{
+            "type": "constant",
+            "value": "keys.txt"
+        }]
+    }
+}
+					</code></pre>
+					<aside class="notes">
+
+						Плюсы - compile-time
+						Минусы - куча несвязанной между собой конфигурации в одном месте
+					</aside>
+				</section>
+
+				<section>
+					<p>Способ 3</p>
+					<p>Аннотации</p>
+					<small>например с помощью декораторов</small>
+					<pre><code class="hljs" data-trim contenteditable>
+// MongoDB.js
+
+class MongoDB {
+
+    // ...
+
+    @AutoProvide('database')
+    factory(credentialsStore) {
+        // ...
+    }
+
+}
+					</code></pre>
+					<aside class="notes">
+						Плюсы - можно сделать compile-time за счет require.context(*)
+						Минусы - но при этом пропадает возможность разбивать код на бандлы. пример:
+					</aside>
+				</section>
+
+				<section>
+					<pre><code class="hljs" data-trim contenteditable>
+// MongoDB.js
+
+require.ensure(['../libs/cache'], function(require) {
+    class MongoDB {
+
+        // ...
+
+        @AutoProvide('database')
+        factory(credentialsStore) {
+            // ...
+        }
+
+    }
+});
+					</code></pre>
+					<aside class="notes">
+						Но это работать не будет
+					</aside>
+				</section>
+
+				<section>
+					<p>Способ 4</p>
+					<p>Декораторы</p>
+					<small class="fragment">+ babel transformator</small>
+					<pre><code class="hljs" data-trim contenteditable>
+// MongoDB.js
+
+class MongoDB {
+
+    // ...
+
+    @AutoProvide('database')
+    factory(credentialsStore) {
+        // ...
+    }
+
+}
+					</code></pre>
+					<aside class="notes">
+						Плюсы - compile-time
+						Минусы - нужно писать babel-tranformator // какая разница если он уже есть
+					</aside>
+				</section>
+
+				<section>
+					<p>Насколько умным может быть DI в JS?</p>
+					<pre class="fragment"><code class="hljs" data-trim contenteditable>
+@AutoInject
+class TaskManager {
+
+    constructor({CredentialsStore: credentials}) {
+        // ...
+    }
+
+    @AutoProvide('OfficeTaskManager')
+    officeFactory({mail, scheduler}) {
+
+    }
+
+}
+					</code></pre>
+				</section>
+
+				<section>
+					<p>Загрузчики модулей</p>
+					<p class="fragment">- это не DI</p>
+				</section>
+
+				<section>
+					<p>Вывод:</p>
+					<p>В JS возможно все</p>
+				</section>
+
+				<section>
+					<p><a href="https://github.com/angular/di.js">angular/di.js</a></p>
+					<p><a href="https://github.com/ftdebugger/di.js">ftdebugger/di.js</a></p>
+					<p><a href="https://github.com/jakwuh/babel-plugin-transform-dependency-injection">jakwuh/babel-plugin-transform-dependency-injection</a></p>
+				</section>
+
+				<section>
+					<style>
+						.reveal section img.social-icon {
+							width: 32px;
+							height: 32px;
+							border: none;
+							box-shadow: none;
+							margin: 0;
+							vertical-align: middle;
+						}
+					</style>
+					<h3>Спасибо за внимание</h3>
+					<p><ul><li></li></ul></p>
+					<ul>
+					<p>
+						<span><img class="social-icon" src="./images/twitter.png" alt=""></span>
+						<a href="https://twitter.com/jamesakwuh">&nbsp;jamesakwuh</a>
+					</p>
+					<p>
+						<span><img class="social-icon" src="./images/github.png" alt=""></span>
+						<a href="https://github.com/jakwuh">&nbsp;jakwuh</a>
+					</p>
+					<p>
+						<span><img class="social-icon" src="./images/linkedin.ico" alt=""></span>
+						<a href="https://www.linkedin.com/in/jakwuh">&nbsp;jakwuh</a>
+					</p>
+					</ul>
+				</section>
+
 			</div>
 		</div>
 
@@ -35,7 +649,11 @@
 		<script>
 			// More info https://github.com/hakimel/reveal.js#configuration
 			Reveal.initialize({
+				controls: false,
+				progress: true,
 				history: true,
+				center: true,
+				transition: 'none',
 
 				// More info https://github.com/hakimel/reveal.js#dependencies
 				dependencies: [
